@@ -5,7 +5,7 @@ from typing import List, Dict, Tuple
 
 def count_characters(text: str) -> int:
     """
-    Count total characters in text (including spaces).
+    Count total characters in text including spaces and punctuation
     """
     return len(text)
 
@@ -19,7 +19,7 @@ def count_words(tokens: List[str]) -> int:
 
 def count_sentences(text: str) -> int:
     """
-    Count sentences 
+    Count sentences
     """
     sentences = re.findall(r"[.!?]", text)
     return len(sentences)
