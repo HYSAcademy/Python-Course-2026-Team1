@@ -12,4 +12,3 @@ def read_text_file(file_path: str) -> str:
         text = file.read()
 
     return text
-# fix
