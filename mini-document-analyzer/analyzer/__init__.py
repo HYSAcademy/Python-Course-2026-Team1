@@ -1,4 +1,4 @@
-from .text_reader import read_text_file
+from .text_reader import read_text_file_async
 from .tokenizer import clean_text, tokenize
 from .statistics import (
     count_characters,
