@@ -5,15 +5,15 @@ from cli import cli, CLIError
 
 def main() -> None:
     """
-        Application entry point.
+    Application entry point.
 
-        Executes the asynchronous CLI workflow and acts as the top-level exception handler.
-        It routes distinct error types to standard error (stderr) to provide clear error
-        messages and exits the process with a non-zero status code upon failure[cite: 9].
+    Executes the asynchronous CLI workflow and acts as the top-level exception handler.
+    It routes distinct error types to standard error (stderr) to provide clear error
+    messages and exits the process with a non-zero status code upon failure[cite: 9].
 
-        Returns:
-            None
-        """
+    Returns:
+        None
+    """
     try:
         asyncio.run(cli(sys.argv))
 

@@ -2,6 +2,7 @@ import json
 import aiofiles
 from typing import Dict, List, Tuple
 
+
 async def export_to_json(
     output_path: str,
     filename: str,
@@ -11,7 +12,7 @@ async def export_to_json(
     cleaned_text: str,
     tokens: List[str],
     word_frequencies: Dict[str, int],
-    top_10_words: List[Tuple[str, int]]
+    top_10_words: List[Tuple[str, int]],
 ) -> None:
     """
     Asynchronously formats and writes the analysis results to a JSON file.
@@ -35,16 +36,13 @@ async def export_to_json(
             "filename": filename,
             "total_characters": total_characters,
             "total_words": total_words,
-            "total_sentences": total_sentences
+            "total_sentences": total_sentences,
         },
-        "content": {
-            "cleaned_text": cleaned_text,
-            "tokens": tokens
-        },
+        "content": {"cleaned_text": cleaned_text, "tokens": tokens},
         "statistics": {
             "word_frequencies": word_frequencies,
-            "top_10_words": top_10_words
-        }
+            "top_10_words": top_10_words,
+        },
     }
 
     try:

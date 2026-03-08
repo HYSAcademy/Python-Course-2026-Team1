@@ -8,36 +8,39 @@ from analyzer import read_text_file_async
 
 class CLIError(Exception):
     """Base class for CLI errors"""
+
     pass
 
 
 class NotEnoughArgumentsError(CLIError):
     """Raised when the user provides fewer arguments than required"""
+
     pass
 
 
 class TooManyArgumentsError(CLIError):
     """Raised when the user provides more arguments than allowed"""
+
     pass
 
 
 async def process_arguments(input_file: str, output_file: str) -> None:
     """
-        Asynchronously orchestrates the text analysis workflow.
+    Asynchronously orchestrates the text analysis workflow.
 
-        This function reads the target file, processes the text to extract tokens
-        and statistics, and triggers the JSON export[cite: 6, 7].
+    This function reads the target file, processes the text to extract tokens
+    and statistics, and triggers the JSON export[cite: 6, 7].
 
-        Args:
-            input_file (str): The file path of the input text document.
-            output_file (str): The file path where the resulting JSON should be saved.
+    Args:
+        input_file (str): The file path of the input text document.
+        output_file (str): The file path where the resulting JSON should be saved.
 
-        Raises:
-            FileNotFoundError: If the input file does not exist.
-            IsADirectoryError: If the input path points to a directory.
-            ValueError: If the input file lacks a .txt extension.
-            IOError: If writing to the destination file fails.
-        """
+    Raises:
+        FileNotFoundError: If the input file does not exist.
+        IsADirectoryError: If the input path points to a directory.
+        ValueError: If the input file lacks a .txt extension.
+        IOError: If writing to the destination file fails.
+    """
     text: str = await read_text_file_async(input_file)
 
     cleaned_text = analyzer.clean_text(text)
@@ -60,7 +63,7 @@ async def process_arguments(input_file: str, output_file: str) -> None:
         cleaned_text=cleaned_text,
         tokens=tokens,
         word_frequencies=word_frequencies_dict,
-        top_10_words=top_10
+        top_10_words=top_10,
     )
 
 
@@ -68,9 +71,13 @@ async def cli(args: List[str]) -> None:
     arg_count = len(args)
 
     if arg_count < 2:
-        raise NotEnoughArgumentsError("Insufficient arguments. Expected at least an input file.")
+        raise NotEnoughArgumentsError(
+            "Insufficient arguments. Expected at least an input file."
+        )
     if arg_count > 3:
-        raise TooManyArgumentsError("Too many arguments. Expected input and optional output file.")
+        raise TooManyArgumentsError(
+            "Too many arguments. Expected input and optional output file."
+        )
 
     input_file = args[1]
 
