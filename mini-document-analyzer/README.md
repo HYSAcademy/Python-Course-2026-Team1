@@ -39,6 +39,7 @@ mini-document-analyzer/
 ├── data/                   # Example input files
 │
 ├── cli.py                  # CLI argument parsing
+├── exporter.py             # Export processed data
 ├── main.py                 # Application entry point
 │
 ├── Dockerfile              # Container definition
