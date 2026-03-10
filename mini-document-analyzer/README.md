@@ -36,6 +36,12 @@ mini-document-analyzer/
 │   ├── tokenizer.py        # Text preprocessing and tokenization
 │   └── statistics.py       # Text statistics calculations
 │
+├── analyzer/
+│   ├──pytest.ini           # Settings for tests
+│   ├──test_analyzer.py     # Tests analyzer 
+│   ├──test_cli.py          # Tests cli
+│   └──test_exporter.py     # Tests exporter
+│
 ├── data/                   # Example input files
 │
 ├── cli.py                  # CLI argument parsing

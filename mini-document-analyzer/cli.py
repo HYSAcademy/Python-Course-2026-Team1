@@ -82,7 +82,9 @@ async def cli(args: List[str]) -> None:
     input_file = args[1]
 
     if arg_count == 3:
-        output_file = f"{args[2]}.analysis.json"
+        output_file = args[2]
+        if not output_file.lower().endswith(".json"):
+            output_file += ".json"
     else:
         input_path = Path(input_file)
         output_file = str(input_path.with_name(f"{input_path.stem}.analysis.json"))
