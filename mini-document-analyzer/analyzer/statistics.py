@@ -21,7 +21,7 @@ def count_sentences(text: str) -> int:
     """
     Count sentences
     """
-    sentences = re.findall(r"[.!?]", text)
+    sentences = re.findall(r"[.!?]+", text)
     return len(sentences)
 
 
