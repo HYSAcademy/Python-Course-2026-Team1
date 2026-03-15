@@ -17,7 +17,6 @@ class File(Base):
     __tablename__ = "files"
     id = Column(Integer, primary_key=True, index=True)
     archive_id = Column(Integer, ForeignKey("archives.id"))
-    path = Column(String)
     size = Column(Integer)
     extension = Column(String)
     content = Column(Text, nullable=True)
