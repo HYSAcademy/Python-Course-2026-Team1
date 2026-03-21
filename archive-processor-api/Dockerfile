@@ -1,25 +1,22 @@
-# syntax=docker/dockerfile:1
-
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Dockerfile reference guide at
-# https://docs.docker.com/go/dockerfile-reference/
-
-# Want to help us make this template better? Share your feedback here: https://forms.gle/ybq9Krt8jtBL3iCk7
-
+ 
 ARG PYTHON_VERSION=3.12.10
-FROM python:${PYTHON_VERSION}-slim as base
+FROM python:${PYTHON_VERSION}-slim AS base
 
-# Prevents Python from writing pyc files.
 ENV PYTHONDONTWRITEBYTECODE=1
-
-# Keeps Python from buffering stdout and stderr to avoid situations where
-# the application crashes without emitting any logs due to buffering.
 ENV PYTHONUNBUFFERED=1
+ENV POETRY_VERSION=2.3.2
+ENV HOST=0.0.0.0
+ENV PORT=8000
 
 WORKDIR /app
 
-# Create a non-privileged user that the app will run under.
-# See https://docs.docker.com/go/dockerfile-user-best-practices/
+ 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+ 
 ARG UID=10001
 RUN adduser \
     --disabled-password \
@@ -30,33 +27,23 @@ RUN adduser \
     --uid "${UID}" \
     appuser
 
-# Download dependencies as a separate step to take advantage of Docker's caching.
-# Leverage a cache mount to /root/.cache/pip to speed up subsequent builds.
-# Leverage a bind mount to requirements.txt to avoid having to copy them into
-# into this layer.
-
-# Set Poetry version
-ENV POETRY_VERSION=2.3.2
-
-# Install Poetry
 RUN pip install "poetry==$POETRY_VERSION"
 
-# Copy Poetry configuration files
 COPY pyproject.toml poetry.lock ./
 
-# Configure Poetry to not create a virtual environment,
-# then install dependencies directly into the container's system Python
 RUN poetry config virtualenvs.create false \
     && poetry install --only main --no-root --no-interaction --no-ansi
 
-# Switch to the non-privileged user to run the application.
+RUN mkdir -p /app/data/indices /app/data/uploads && \
+    chown -R appuser:appuser /app/data
+
+ 
 USER appuser
 
-# Copy the source code into the container.
-COPY . .
+ 
+COPY --chown=appuser:appuser . .
 
-# Expose the port that the application listens on.
-EXPOSE 8000
+EXPOSE ${PORT}
 
-# Run the application.
-CMD uvicorn app.main:app --host 0.0.0.0 --port 8000
+ 
+CMD ["sh", "-c", "uvicorn app.main:app --host ${HOST} --port ${PORT}"]
