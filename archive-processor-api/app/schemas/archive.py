@@ -1,22 +1,11 @@
 from pydantic import BaseModel
-from typing import List
 
-class FileBase(BaseModel):
-    """Base schema for file metadata."""
-    path: str
-    size: int
-    extension: str
 
-class FileCreate(FileBase):
-    """Schema for creating a new file record, including extracted text."""
-    content: str
-
-class ArchiveResponse(BaseModel):
-    """Schema for the final response after processing an archive."""
-    id: int
+class ProcessedFileResult(BaseModel):
     filename: str
-    files_count: int
-    files: List[FileCreate]
+    status: str
+    extracted: int
 
-    class Config:
-        from_attributes = True
+
+class UploadArchivesResponse(BaseModel):
+    processed_files: list[ProcessedFileResult]
