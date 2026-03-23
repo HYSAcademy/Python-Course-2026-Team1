@@ -14,9 +14,9 @@ from app.db.models import Archive
 from app.db.session import get_db
 from app.middleware.exception_handler import InvalidFileException
 from app.schemas.archive import QueuedArchiveResult, UploadArchivesResponse
-from app.services.archive_processing import ArchiveProcessingService
 from app.services.storage import FileStorageService
 from app.services.validation import FileValidationService
+from app.workers.tasks import process_archive_task
 
 router = APIRouter()
 
@@ -42,6 +42,7 @@ async def upload_archives(
 
         temp_file_path = ""
         task_scheduled = False
+        archive = None
 
         try:
             temp_file_path, _ = await FileStorageService.save_upload_to_temp(file)
@@ -54,11 +55,7 @@ async def upload_archives(
             await db.commit()
             await db.refresh(archive)
 
-            background_tasks.add_task(
-                ArchiveProcessingService.process_archive_background,
-                archive.id,
-                temp_file_path,
-            )
+            process_archive_task.delay(archive.id, temp_file_path)
             task_scheduled = True
 
             results.append(
@@ -75,8 +72,13 @@ async def upload_archives(
             raise
 
         except Exception as e:
+            if archive:
+                archive.status = "failed"
+                await db.commit()
+
             if temp_file_path and not task_scheduled:
                 await FileStorageService.remove_temp_file(temp_file_path)
+
             raise InvalidFileException(
                 f"Failed to queue archive {file.filename}: {str(e)}"
             ) from e

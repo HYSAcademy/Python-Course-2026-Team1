@@ -7,12 +7,15 @@ services:
     restart: always
     env_file: .env
     ports:
-        - "${PORT:-8000}:${PORT:-8000}"
+      - "${PORT:-8000}:${PORT:-8000}"
+    volumes:
+      - uploads-data:/app/data/uploads
+      - tfidf-indices:/app/data/indices
     depends_on:
       db:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     command: uvicorn app.main:app --host ${HOST:-0.0.0.0} --port ${PORT:-8000}
 
   worker:
@@ -23,27 +26,27 @@ services:
     restart: always
     env_file: .env
     volumes:
+      - uploads-data:/app/data/uploads
       - tfidf-indices:/app/data/indices
-      - ./data/uploads:/app/data/uploads:ro
     depends_on:
       db:
         condition: service_healthy
       redis:
-        condition: service_started
-    command: python -m app.worker.main
+        condition: service_healthy
+    command: celery -A app.workers.celery_app.celery_app worker --loglevel=info
 
   db:
     image: postgres:15-alpine
     restart: always
     env_file: .env
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -54,8 +57,14 @@ services:
     command: redis-server --appendonly yes
     volumes:
       - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
+  uploads-data:
   tfidf-indices:
   db-data:
   redis-data:
