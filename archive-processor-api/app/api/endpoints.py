@@ -1,12 +1,19 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, UploadFile as FastAPIUploadFile
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    UploadFile as FastAPIUploadFile,
+)
 from pydantic import WithJsonSchema
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models import Archive
 from app.db.session import get_db
 from app.middleware.exception_handler import InvalidFileException
-from app.schemas.archive import UploadArchivesResponse
+from app.schemas.archive import QueuedArchiveResult, UploadArchivesResponse
 from app.services.archive_processing import ArchiveProcessingService
 from app.services.storage import FileStorageService
 from app.services.validation import FileValidationService
@@ -24,34 +31,54 @@ UploadFile = Annotated[
     response_model=UploadArchivesResponse,
 )
 async def upload_archives(
+    background_tasks: BackgroundTasks,
     files: Annotated[list[UploadFile], File(...)],
     db: AsyncSession = Depends(get_db),
 ) -> UploadArchivesResponse:
-    results = []
+    results: list[QueuedArchiveResult] = []
 
     for file in files:
         FileValidationService.validate_before_save(file)
+
         temp_file_path = ""
+        task_scheduled = False
 
         try:
             temp_file_path, _ = await FileStorageService.save_upload_to_temp(file)
 
-            processed_result = await ArchiveProcessingService.process_archive(
-                db=db,
-                temp_file_path=temp_file_path,
-                original_filename=file.filename,
+            archive = Archive(
+                filename=file.filename,
+                status="queued",
             )
-            results.append(processed_result)
+            db.add(archive)
+            await db.commit()
+            await db.refresh(archive)
+
+            background_tasks.add_task(
+                ArchiveProcessingService.process_archive_background,
+                archive.id,
+                temp_file_path,
+            )
+            task_scheduled = True
+
+            results.append(
+                QueuedArchiveResult(
+                    archive_id=archive.id,
+                    filename=archive.filename,
+                    status=archive.status,
+                )
+            )
 
         except InvalidFileException:
-            raise
-        except Exception as e:
-            raise InvalidFileException(
-                f"Extraction failed for {file.filename}: {str(e)}"
-            ) from e
-        finally:
-            if temp_file_path:
+            if temp_file_path and not task_scheduled:
                 await FileStorageService.remove_temp_file(temp_file_path)
+            raise
 
-    await db.commit()
-    return UploadArchivesResponse(processed_files=results)
+        except Exception as e:
+            if temp_file_path and not task_scheduled:
+                await FileStorageService.remove_temp_file(temp_file_path)
+            raise InvalidFileException(
+                f"Failed to queue archive {file.filename}: {str(e)}"
+            ) from e
+
+    return UploadArchivesResponse(queued_archives=results)

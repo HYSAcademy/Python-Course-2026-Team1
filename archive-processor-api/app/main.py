@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from app.api.endpoints import router as api_router
 from app.api.indexing import router as indexing_router
+from app.api.status import router as status_router
 from app.core.config import settings
 from app.db import models
 from app.db.session import engine, Base
@@ -26,7 +27,6 @@ async def lifespan(app: FastAPI):
     """
     logger.info("Starting up Archive Processing API...")
     async with engine.begin() as conn:
-
         await conn.run_sync(Base.metadata.create_all)
 
     yield
@@ -49,6 +49,7 @@ app.add_exception_handler(Exception, general_exception_handler)
 
 
 app.include_router(indexing_router, prefix="/api/v1/archives", tags=["indexing"])
+app.include_router(status_router, prefix="/api/v1", tags=["status"])
 app.include_router(api_router, prefix="/api/v1")
 
 

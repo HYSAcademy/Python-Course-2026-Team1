@@ -1,11 +1,11 @@
 from pydantic import BaseModel
 
 
-class ProcessedFileResult(BaseModel):
+class QueuedArchiveResult(BaseModel):
+    archive_id: int
     filename: str
     status: str
-    extracted: int
 
 
 class UploadArchivesResponse(BaseModel):
-    processed_files: list[ProcessedFileResult]
+    queued_archives: list[QueuedArchiveResult]
