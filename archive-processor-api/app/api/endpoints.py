@@ -1,6 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, UploadFile as FastAPIUploadFile
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    UploadFile as FastAPIUploadFile,
+)
 from pydantic import WithJsonSchema
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,6 +31,7 @@ UploadFile = Annotated[
     response_model=UploadArchivesResponse,
 )
 async def upload_archives(
+    background_tasks: BackgroundTasks,
     files: Annotated[list[UploadFile], File(...)],
     db: AsyncSession = Depends(get_db),
 ) -> UploadArchivesResponse:
