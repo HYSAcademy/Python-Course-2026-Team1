@@ -1,10 +1,10 @@
 from typing import List
-from pydantic import Field, field_validator
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-
     app_name: str = "Archive Processor API"
     environment: str = "production"
     debug: bool = False
@@ -36,12 +36,24 @@ class Settings(BaseSettings):
 
     @field_validator("database_url")
     @classmethod
-    def validate_db_url(cls, v: str) -> str:
-        if not v.startswith(("postgresql://", "postgresql+asyncpg://")):
+    def validate_db_url(cls, value: str) -> str:
+        if not value.startswith(("postgresql://", "postgresql+asyncpg://")):
             raise ValueError(
                 "DATABASE_URL must be a valid PostgreSQL connection string"
             )
-        return v
+        return value
+
+    @property
+    def redis_url(self) -> str:
+        return f"redis://{self.redis_host}:{self.redis_port}/0"
+
+    @property
+    def celery_broker_url(self) -> str:
+        return self.redis_url
+
+    @property
+    def celery_result_backend(self) -> str:
+        return self.redis_url
 
 
 settings = Settings()
