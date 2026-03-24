@@ -9,16 +9,16 @@ class IndexTriggerRequest(BaseModel):
     Data required to initiate a TF-IDF indexing task.
     """
 
-    archive_id: str = Field(
+    archive_id: int = Field(
         ...,
-        min_length=1,
-        max_length=255,
+        ge=1,
+        le=200_000_000,
         description="The unique identifier of the pre-validated archive file.",
-        examples=["archive-id-placeholder"],
+        examples=[1],
     )
 
     model_config = ConfigDict(
-        json_schema_extra={"example": {"archive_id": "archive-id-placeholder"}}
+        json_schema_extra={"example": {"archive_id": 1}}
     )
 
 
@@ -32,10 +32,10 @@ class IndexTaskResponse(BaseModel):
         description="Unique identifier for tracking the background job status.",
         examples=["00000000-0000-0000-0000-000000000000"],
     )
-    archive_id: str = Field(
+    archive_id: int = Field(
         ...,
         description="The ID of the archive being processed.",
-        examples=["archive-id-placeholder"],
+        examples=[1],
     )
     status: str = Field(
         default="queued",
@@ -50,7 +50,7 @@ class IndexTaskResponse(BaseModel):
         json_schema_extra={
             "example": {
                 "task_id": "00000000-0000-0000-0000-000000000000",
-                "archive_id": "archive-id-placeholder",
+                "archive_id": 1,
                 "status": "queued",
                 "queued_at": "2026-01-01T00:00:00Z",
             }

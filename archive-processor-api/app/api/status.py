@@ -10,7 +10,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/archives/{archive_id}/status",
+    "/{archive_id}/status",
     response_model=ArchiveStatusResponse,
 )
 async def get_archive_status(
