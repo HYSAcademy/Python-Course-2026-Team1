@@ -1,62 +1,52 @@
-import os
 import joblib
-from typing import Dict, Any, List
+import logging
+from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
-from app.core.config import settings
-from app.services.extractor import ArchiveProcessor
+from sqlalchemy import select
 
+from app.db.session import AsyncSessionLocal
+from app.db.models import File
+from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 class TFIDFIndexingService:
-    def __init__(self):
-        # Configuration for the vectorizer
-        # max_df=0.95: Ignore terms that appear in more than 95% of documents
-        # min_df=2: Ignore terms that appear in only 1 document (typos/noise)
-        self.vectorizer = TfidfVectorizer(
-            stop_words="english",
-            lowercase=True,
-            max_df=0.95,
-            min_df=2,
-            use_idf=True,
-            smooth_idf=True,
-        )
+    @staticmethod
+    async def run_pipeline(archive_id: int) -> None:
+        """Asynchronous internal function to handle DB I/O and indexing."""
+        async with AsyncSessionLocal() as db:
+            stmt = select(File).where(File.archive_id == archive_id)
+            result = await db.execute(stmt)
+            db_files = result.scalars().all()
 
-    def run_pipeline(self, archive_path: str, index_output_path: str) -> Dict[str, Any]:
-        """
-        The main pipeline: Extract -> Clean -> Vectorize -> Save
-        """
-        #  Extraction
-        archive_data = ArchiveProcessor.process_archive(archive_path)
+            if not db_files:
+                logger.warning(f"No files found for archive {archive_id}")
+                return
 
-        # Pre-processing & filtering
-        documents = []
-        filenames = []
+            documents = []
+            metadata = []
 
-        for file in archive_data["files"]:
-            content = file["content"]
-            if content and content != "[Binary or non-UTF8 content]":
-                documents.append(content)
-                filenames.append(file["path"])
+            for f in db_files:
+                if f.content and "[Binary" not in f.content:
+                    documents.append(f.content)
+                    metadata.append({"file_id": f.id, "extension": f.extension})
 
-        if not documents:
-            raise ValueError("No valid text content found in archive for indexing")
+            if not documents:
+                logger.warning(f"No indexable text found for archive {archive_id}")
+                return
 
-        # Vectorization
-        # tfidf_matrix is a scipy sparse matrix
-        tfidf_matrix = self.vectorizer.fit_transform(documents)
+            vectorizer = TfidfVectorizer(stop_words="english", max_features=10000)
+            tfidf_matrix = vectorizer.fit_transform(documents)
 
-        # Packaging the Index
-        index_artifact = {
-            "matrix": tfidf_matrix,
-            "filenames": filenames,
-            "vectorizer": self.vectorizer,
-            "metadata": {
-                "archive_name": archive_data["filename"],
-                "total_files_indexed": len(filenames),
-            },
-        }
+            index_data = {
+                "matrix": tfidf_matrix,
+                "vectorizer": vectorizer,
+                "metadata": metadata,
+            }
 
-        # Persistence
-        os.makedirs(os.path.dirname(index_output_path), exist_ok=True)
-        joblib.dump(index_artifact, index_output_path)
+            output_dir = Path(settings.tfidf_index_dir)
+            output_dir.mkdir(parents=True, exist_ok=True)
+            output_path = output_dir / f"{archive_id}.joblib"
 
-        return index_artifact["metadata"]
+            joblib.dump(index_data, output_path)
+            logger.info(f"TF-IDF index saved to {output_path}")
