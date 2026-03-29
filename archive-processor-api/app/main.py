@@ -5,6 +5,7 @@ from app.api.endpoints import router as api_router
 from app.api.indexing import router as indexing_router
 from app.api.status import router as status_router
 from app.api.search import router as search_router
+from app.api.vector_search import router as vector_router
 from app.core.config import settings
 from app.db.session import engine, Base
 from app.middleware.exception_handler import (
@@ -47,6 +48,8 @@ app.include_router(status_router, prefix="/api/v1/status", tags=["status"])
 app.include_router(indexing_router, prefix="/api/v1/archives", tags=["indexing"])
 
 app.include_router(api_router, prefix="/api/v1")
+
+app.include_router(vector_router, prefix="/api/v1", tags=["vector-search", "rag"])
 
 @app.get("/health", tags=["system"])
 async def health_check():

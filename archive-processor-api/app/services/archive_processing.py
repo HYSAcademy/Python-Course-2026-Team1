@@ -1,9 +1,14 @@
 import asyncio
+import redis
 
+from app.core.config import settings
 from app.db.models import Archive, File as DBFile
 from app.db.session import AsyncSessionLocal
 from app.services.extractor import ArchiveProcessor
 from app.services.storage import FileStorageService
+
+
+redis_client = redis.Redis(host=settings.redis_host, port=settings.redis_port)
 
 
 class ArchiveProcessingService:
@@ -14,7 +19,6 @@ class ArchiveProcessingService:
     ) -> None:
         async with AsyncSessionLocal() as db:
             archive = await db.get(Archive, archive_id)
-
             if not archive:
                 await FileStorageService.remove_temp_file(temp_file_path)
                 return
@@ -41,8 +45,11 @@ class ArchiveProcessingService:
                     )
                     for file_data in archive_data["files"]
                 ]
+
                 db.add_all(db_files)
                 await db.commit()
+
+                redis_client.publish("archive_processed", archive.id)
 
             except Exception:
                 await db.rollback()
