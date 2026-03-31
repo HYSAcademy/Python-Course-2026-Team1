@@ -1,8 +1,8 @@
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
-
+from app.core.config import settings
 from app.db.session import Base
-
+from pgvector.sqlalchemy import Vector
 
 class Archive(Base):
     __tablename__ = "archives"
@@ -26,3 +26,4 @@ class File(Base):
     content = Column(Text, nullable=True)
 
     archive = relationship("Archive", back_populates="files")
+    embedding = Column(Vector(settings.embedding_dimensions), nullable=True)
