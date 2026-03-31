@@ -7,7 +7,7 @@ services:
     restart: always
     env_file: .env
     ports:
-      - "${PORT:-8000}:${PORT:-8000}"
+      - "${API_PORT:-8000}:8000"
     volumes:
       - uploads-data:/app/data/uploads
       - tfidf-indices:/app/data/indices
@@ -35,8 +35,23 @@ services:
         condition: service_healthy
     command: celery -A app.workers.celery_app worker --loglevel=info
 
+  rag-service:
+    build:
+      context: ../rag-service
+      args:
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.12.10}
+    restart: always
+    env_file: ../rag-service/.env
+    ports:
+      - "8001:8001"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   db:
-    image: postgres:15
+    image: pgvector/pgvector:pg15
     restart: always
     env_file: .env
     environment:
@@ -45,6 +60,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db-data:/var/lib/postgresql/data
+      - ./init-pgvector.sql:/docker-entrypoint-initdb.d/init-pgvector.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
