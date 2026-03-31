@@ -16,6 +16,10 @@ class Settings(BaseSettings):
 
     rag_service_url: str = "http://rag:8001"
 
+    # Default is 1536 for OpenAI text-embedding-3-small
+    embedding_dimensions: int = 1536
+    archive_processed_channel: str = "archive_processed"
+
     tfidf_queue_name: str = "tfidf_tasks"
     upload_temp_dir: str = "/app/data/uploads"
     tfidf_index_dir: str = "/app/data/indices"
